@@ -21,13 +21,13 @@ class Point:
     instances = {}
 
     def __init__(self, pt={'A' : (0,0)}):
-        self.name = [k for k in pt.keys()][0]
-        self.val = np.array(pt[self.name])
-        self.x, self.y = pt[self.name]
+        self.s = [k for k in pt.keys()][0]
+        self.val = np.array(pt[self.s])
+        self.x, self.y = pt[self.s]
 
         self.graph = ax.scatter(self.x, self.y)
-        ax.annotate(self.name, np.array(self.val)*1.05)
-        Point.instances[self.name] = self
+        ax.annotate(self.s, np.array(self.val)*1.05)
+        Point.instances[self.s] = self
 
     def __getitem__(self, k):
         return self.val[k]
@@ -35,29 +35,29 @@ class Point:
     def __repr__(self):
         return 'Point({})'.format(self.val)
 
-    def __add__(self, A=(0,0)):
-        return self.val + A[:]
+    def __add__(self, A):
+        return tuple(self.val + A[:])
 
-    def __radd__(self, A=(0,0)):
+    def __radd__(self, A):
         print(self.val)
-        print(A[:])
-        return self.val + A[:]
+        print(A)
+        return tuple(self.val + A[:])
 
     def __sub__(self, A=(0,0)):
-        return self.val - A[:]
+        return tuple(self.val - A[:])
 
     def __rsub__(self, A=(0,0)):
-        return A[:] - self.val
+        return tuple(A[:] - self.val)
 
     def remove(self):
         self.graph.remove()
-        del Point.instances[self.name]
+        del Point.instances[self.s]
 
     def __del__(self):
 
-        print('suppression du point {}'.format(self.name))
+        print('suppression du point {}'.format(self.s))
         self.graph.remove()
-        del Point.instances[self.name]
+        del Point.instances[self.s]
 
 class Vect:
     instances = {}
@@ -68,7 +68,7 @@ class Vect:
     def __init__(self, A, B):
         """ créé un vecteur de A vers B, avec A et B des instances de Point """
 
-        self.s = A.name + B.name
+        self.s = A.s + B.s
         if self.s in Vect.instances.keys() :
             print('le vecteur {} existe déjà!'.format(self.s))
 
@@ -106,31 +106,28 @@ class Vect:
         return self.B - self.A
 
     def __repr__(self):
-        return str(self.B - self.A)
+        return 'Vect({})'.format(self.B - self.A)
 
     def __add__(self, A=(0,0)):
-        return self.val + A[:]
+        return tuple(self.val + A[:])
 
     def __radd__(self, A=(0,0)):
-        return self.val + A[:]
+        return tuple(self.val + A[:])
 
     def __sub__(self, A=(0,0)):
-        return self.val - A[:]
+        return tuple(self.val - A[:])
 
     def __rsub__(self, A=(0,0)):
-        return A[:] - self.val
+        return tuple(A[:] - self.val)
 
     def __mul__(self, n=1):
-        return self.val*n
+        return tuple(self.val*n)
 
     def __rmul__(self, n=1):
-        return self.val*n
+        return tuple(self.val*n)
 
     def __truediv__(self, n=1):
-        return self.val/n
-
-
-
+        return tuple(self.val/n)
 
     def __getitem__(self, k):
         return self.val[k]
@@ -155,6 +152,9 @@ v = Vect.instances
 plt.show()
 
 
+Vect(p['B'], p['C'])
+Vect(p['B'], p['A'])
+a= v['BC'] + v['BA']
 
 
 
