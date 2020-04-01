@@ -7,21 +7,9 @@ plt.ion()
 
 
 
-data = {'A' : (2,3),
-        'B' : (4,6),
-        'C' : (3,7)}
-
-df = pd.DataFrame(data.values(),
-                  index=data.keys(),
-                  columns=('x', 'y'))
-
 fig, ax = plt.subplots()
 ax.set_xlabel('x')
 ax.set_ylabel('y')
-ax.scatter(df.x, df.y)
-[ax.annotate(d.name, d.to_numpy()*1.1) for d in [df.iloc[i] for i in range(len(df))]]
-#ax.text(df.x * (1 + 0.01), df.y * (1 + 0.01) , df.index, fontsize=12)
-#(ax.annotate(s, tuple(xv)
 ax.set_xticks(np.arange(11))
 ax.set_yticks(np.arange(11))
 plt.xlim(0,10)
@@ -29,77 +17,89 @@ plt.ylim(0,10)
 plt.grid()
 plt.show()
 
-def gen_vector():
-    vector_dct={}
-
-    def p(pt):
-        return df.loc[pt].to_numpy()
-
-    def vector(s):
-        A=p(s[0])
-        B=p(s[1])
-        #n = sA+sB
-        if s in vector_dct.keys():
-            print('le vecteur {} est déjà tracé')
-            return None
-        print('new {} vector'.format(s))
-        AB = ax.arrow(A[0],A[1],B[0]-A[0], B[1]-A[1], head_width=0.2)
-        vector_dct[s] = AB
-
-    def del_vector(AB):
-        vector_dct[AB].remove()
-        del vector_dct[AB]
-
-    return vector, del_vector
-
-vector, del_vector = gen_vector()
-
-def create_vector(s='AB'):
-    vector_dct = {}
-    print(vector_dct)
-
-def p(pt):
-    return df.loc[pt].to_numpy()
-
 class Point:
     instances = {}
 
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, pt={'A' : (0,0)}):
+        self.name = [k for k in pt.keys()][0]
+        self.val = np.array(pt[self.name])
+        self.x, self.y = pt[self.name]
+
+        self.graph = ax.scatter(self.x, self.y)
+        ax.annotate(self.name, np.array(self.val)*1.05)
+        Point.instances[self.name] = self
+
+    def __getitem__(self, k):
+        return self.val[k]
+
+    def __repr__(self):
+        return 'Point({})'.format(self.val)
+
+    def __add__(self, A=(0,0)):
+        return self.val + A[:]
+
+    def __radd__(self, A=(0,0)):
+        print(self.val)
+        print(A[:])
+        return self.val + A[:]
+
+    def __sub__(self, A=(0,0)):
+        return self.val - A[:]
+
+    def __rsub__(self, A=(0,0)):
+        return A[:] - self.val
+
+    def remove(self):
+        self.graph.remove()
+        del Point.instances[self.name]
+
+    def __del__(self):
+
+        print('suppression du point {}'.format(self.name))
+        self.graph.remove()
+        del Point.instances[self.name]
 
 class Vect:
     instances = {}
 
-    def __init__(self, s):
+    def p(pt):
+        return df.loc[pt].to_numpy()
 
-        if s in Vect.instances.keys() :
-            print('le vecteur {} existe déjà!')
-        #    return
-           # return Vect.instances[s]
-        print('ce code est excécuté')
+    def __init__(self, A, B):
+        """ créé un vecteur de A vers B, avec A et B des instances de Point """
 
-        self.s = s
-        A=p(s[0])
-        B=p(s[1])
-        self.A = A
-        self.B = B
-        self.AB = ax.arrow(A[0],A[1],B[0]-A[0], B[1]-A[1], head_width=0.2)
+        self.s = A.name + B.name
+        if self.s in Vect.instances.keys() :
+            print('le vecteur {} existe déjà!'.format(self.s))
 
-        Vect.instances[s] = self.AB
+        self.A = A.val
+        self.B = B.val
+        self.graph = ax.arrow(A[0],A[1],B[0]-A[0], B[1]-A[1], head_width=0.2)
+
+        Vect.instances[self.s] = self
+
+    def remove(self):
+        self.graph.remove()
+        del Vect.instances[self.s]
 
     def __del__(self):
 
         print('suppression du vecteur {}'.format(self.s))
-        self.AB.remove()
-        del Vect.instances[self.s]
+        self.graph.remove()
+#        del Vect.instances[self.s]
+        #self.__del__()
 
     @property
-    def xy(self):
+    def start(self):
         return self.A
 
     @property
+    def end(self):
+        return self.B
+
+    @property
     def norm(self):
-        return np.sqrt((self.B-self.A)**2)
+        return np.sqrt(np.sum((self.B-self.A)**2))
 
     @property
     def val(self):
@@ -120,12 +120,39 @@ class Vect:
     def __rsub__(self, A=(0,0)):
         return A[:] - self.val
 
+    def __mul__(self, n=1):
+        return self.val*n
+
+    def __rmul__(self, n=1):
+        return self.val*n
+
+    def __truediv__(self, n=1):
+        return self.val/n
+
+
+
+
     def __getitem__(self, k):
         return self.val[k]
 
 
+#data = {'A' : (2,3),
+#        'B' : (4,6),
+#        'C' : (3,7)}
+#
+#for k, v in data.items() :
+#    Point({k:v})
+#
+#A = Point.instances['A']
+#B = Point.instances['B']
+#C = Point.instances['C']
 
+for n in 'ABC':
+    Point({n:np.random.randint(1,9,2)})
+p = Point.instances
+v = Vect.instances
 
+plt.show()
 
 
 
