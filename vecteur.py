@@ -3,27 +3,18 @@
 import re
 
 import numpy as np
-import pandas as pd
+#import pandas as pd
 from matplotlib import pyplot as plt
 plt.ion()
 
-fig, ax = plt.subplots()
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.set_xticks(np.arange(0,11,1))
-ax.set_yticks(np.arange(0,11,1))
-plt.xlim(0,10)
-plt.ylim(0,10)
-plt.grid()
-plt.show()
 
-def iS_good_name(name):
-    if isinstance(name,str):
-        if re.fullmatch('[A-Z]\d|[A-Z]', name) != None:
-            return True
-    print('Point name format should be "[A-Z]" or "[A-Z][0-9]"')
-    print('Give one for U!')
-    return False
+#def iS_good_name(name):
+#    if isinstance(name,str):
+#        if re.fullmatch('[A-Z]\d|[A-Z]', name) != None:
+#            return True
+#    print('Point name format should be "[A-Z]" or "[A-Z][0-9]"')
+#    print('Give 1 4 U!')
+#    return False
 
 def inccrement_point_name(name):
     if len(name) == 1:
@@ -31,31 +22,76 @@ def inccrement_point_name(name):
     return name[0] + str(int(name[1]) + 1)
                
 def gen_name(liste):
+    """ 
+    A name generator for Point and Vect
+    
+    Args:
+        liste (string) : an iterable containing names to give 
+    Returns:
+        A generator
+    """
     index = 0
     while True:
         for lettre in liste:
             yield lettre + str(index)
         index += 1
+        
 class Point:
+    """
+    An object that represent a point 
+    
+    Args:
+        pos (tuple): point position
+        name (str): should be [A-Z] or [A-Z][0-9]
+        is_saved (bool): don't save the instance
+        is_show (bool): plot at creation
+    Returns:
+        Point object
+    """
+    # store created intances with is_saved flag
     instances = {}
-    get_name = gen_name('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    # name generator
+    get_name = gen_name('GHIJKLMNOPQRSTUVWXYZABCDEF')
            
-    def __init__(self, pos=(0,0), name=None, is_temp = False):
+    def __init__(self, pos=(0,0), name=None, is_saved=True, show=True):
         
         self.x, self.y = self.val = np.array(pos)
         
-        if name == None or not iS_good_name(name):
+        if self in Point.instances.values(): # Point already exist (same val): don't save it
+            is_saved = False
+
+        self.set_name(name)
+
+        self.is_show = False # will be toggled 
+
+        if is_saved: 
+            if show:
+                self.toggle_plot()
+            Point.instances[self.name] = self
+            print(Point.instances)
+
+    def copy(self):
+        return Point(self.val, name=self.name, is_saved=False)
+    
+    def set_name(self, name):
+        """ Compare name to regex, and generate one if needed"""
+        if name == None or not Point.iS_good_name(name):
+            print('Point name format should be "[A-Z]" or "[A-Z][0-9]"\nGive 1 4 U!')
             self.name = next(Point.get_name)
+            while self.name in Point.instances.keys():
+                self.name = next(Point.get_name)
         else :
             self.name = name
-
-        self.is_show = False
-        if not is_temp: 
-            self.toggle_plot()
-            Point.instances[self.name] = self
-
-    def __getitem__(self, k):
-        return self.val[k]
+    
+    @staticmethod
+    def iS_good_name(name):
+        if isinstance(name,str):
+            if re.fullmatch('[A-Z]\d|[A-Z]', name) != None:
+                return True
+        return False
+            
+    #def __getitem__(self, k):
+    #    return self.val[k]
 
     def __repr__(self):
         return 'Point({})'.format(self.val)
@@ -65,11 +101,12 @@ class Point:
             if all(other.val == self.val):
                 return True            
         except Exception as err :
-            print("Should be compare to a point")
+            print("Should be compared to a point")
             print(err)
         return False
                 
     def toggle_plot(self):
+        """ toggle object display on the graph """
         if self.is_show:
             self.graph.remove()
             self.graph_text.remove()
@@ -79,238 +116,172 @@ class Point:
         self.is_show = not self.is_show            
                 
 
-    def transform(self, vecteur):
-        val = vecteur.val + self.val
-        temp_point = Point(pos=val, is_temp=True)
+    def transform(self, vect):
+        """ 
+        give an image of the point by vect translation
+        Args:
+            vect (Vect): translation vector
+        Returns
+            a new Point object
+        """
+        val = Vect.val + self.val
+        temp_point = Point(pos=val, is_saved=True)
         if temp_point in Point.instances.values():
         #if any(list(map(lambda x : all(x.val == val), [a for a in Point.instances.values()]))):
             #k = [k for k,v in Point.instances.items() if all(v.val==val)][0]
             k = [k for k,v in Point.instances.items() if v == temp_point][0]
-            print(f'limage de {self.name} par le vecteur {vecteur.name} est {k}')
+            print(f'limage de {self.name} par le Vect {Vect.name} est {k}')
             return Point.instances[k]
         return Point(val, inccrement_point_name(self.name))
 
-    def plot(self, *args):
-        to = self.transform(*args)
-        Vect(self, to)
-
-    def remove(self):
-        self.graph.remove()
-        self.graph_text.remove()
-        del Point.instances[self.name]
-
     def __del__(self):
-
         print('suppression du point {}'.format(self.name))
-        self.graph.remove()
-        self.graph_text.remove()
-        del Point.instances[self.name]
+        try :
+            self.graph.remove()
+            self.graph_text.remove()
+        except AttributeError:
+            print('Point {} has no graph plotted'.format(self.name))
 
-
-def vect2(*args):
-    try :
-        print('len : ', len(args))
-        if len(args) > 1:
-            if all([isinstance(a, Point) for a in args]):
-                print('Point')
-                A, B = [a.val for a in args]
-            elif all([isinstance(a, tuple) for a in args]):
-                print('double tuple')
-                A, B = [np.array(a) for a in args]
-        elif isinstance(args[0], np.ndarray):
-            print('numpy')
-            A = np.array([0,0])
-            B = args[0]
-        elif isinstance(args[0], tuple):
-            print('tuple')
-            A, B = [np.array(a) for a in [(0,0), args[0]]]
-        elif isinstance(args[0], str):
-            print('str')
-            A, B = [Point.instances[v].val for v in args[0]]
-
-        return B - A
-    except Exception as err :
-        print(args)
-        print(err)
-        
-
-def vectorize(A):
+def parse_point(A):
+    """ parse a string, tuple or Point into Point object """
     try :
         if isinstance(A, Point):
-            return A.Val, A.name
+            return A
         elif isinstance(A, str):
-            return Point.instances[A].val, A
+            return Point.instances[A]
         elif isinstance(A, tuple):
-            return np.array(A), None
+            return Point(A, is_saved=False)
     except Exception as err :
-        print(args)
+        print(A)
         print(err)
 
 class Vect:
+    """ 
+    An object that represent a vector between Point object A and B
+    
+    Args:
+        B (Point): vector end
+        A (Point): vector start
+        is_saved (bool): save object in instances dict
+        show (bool): diplay on graph at creation
+    Returns
+        Vect object
+    """
+    
+    # store created intances with is_saved flag
     instances = {}
+    # name generator
+    get_name = gen_name('uvwxyzabcdefghijklmnopqrst')
+    
+    def __init__(self, B, A=Point((0,0),is_saved=False), name=None, is_saved=True, show=False):
 
-    #def p(pt):
-    #    return df.loc[pt].to_numpy()
-    def get_name():
-        names = 'abcdefghijklmnopqrstuvwxyz'
-        for name in names:
-            yield name
+        A, B = map(parse_point, [A, B])
 
-    def __init__(self, *args, start=(0,0), is_temp=False):
-        """ créé un vecteur de A vers B, avec A et B des instances de Point """
-
-        if len(args) == 2:
-            self.A, A_name = vectorize(args[0])
-            self.B, B_name = vectorize(args[1])
-        elif len(args) == 1:
-            self.A = np.array(start)
-            self.B, B_name = vectorize(args[0])
-            
-        self.val = self.B - self.A
-        self.name = (get_name())
+        self.val = B.val - A.val
+        self.start = A.copy()
+        self.set_name(name)
+        self.is_show = False
         
-        self.A = start
-        self.B = end
-        
-        if self.name in Vect.instances.keys() :
-            print('le vecteur {} existe déjà!'.format(self.name))
-
-        self.A = A.val
-        self.B = B.val
-        self.graph = ax.arrow(A[0],A[1],B[0]-A[0], B[1]-A[1], head_width=0.2)
-
+        if show:
+            self.toggle_plot()
         Vect.instances[self.name] = self
-
-    def remove(self):
-        self.graph.remove()
-        del Vect.instances[self.name]
-
-    def __del__(self):
-
-        print('suppression du vecteur {}'.format(self.name))
-        self.graph.remove()
-#        del Vect.instances[self.name]
-        #self.__del__()
-
+            
+    def __repr__(self):
+        return 'Vect({})'.format(self.val)
+        
+    def set_name(self, name):
+        """ Generate a new name if given isn"t right """
+        if name == None or not Vect.iS_good_name(name):
+            self.name = next(Vect.get_name)
+            print('Vect name format should be "[a-z]" or "[a-z][0-9]"\nGive 1 4 U!')
+            while self.name in Vect.instances.keys():
+                self.name = next(Vect.get_name)
+        else :
+            self.name = name
+            
     @staticmethod
-    def image(A, BC):
-        """ image du point A (class Point) par BC (class Vect) """
-        return Point({A.s + '1': A+BC})
-
-    @property
-    def start(self):
-        return self.A
-
-    @property
-    def end(self):
-        return self.B
+    def iS_good_name(name):
+        """ Test name format : should be [a-z] or [a-z][0-9] """
+        if isinstance(name,str):
+            if re.fullmatch('[a-z]\d|[a-z]', name) != None:
+                return True
+        return False
+            
+    def toggle_plot(self):
+        """ toggle object diplay on graph"""
+        if self.is_show:  
+            self.graph.remove()
+        else:
+            A, B = self.start.val, self.val
+            self.graph = ax.arrow(A[0], A[1], B[0], B[1], head_width=0.2)
+        self.is_show = not self.is_show   
 
     @property
     def norm(self):
-        return np.sqrt(np.sum((self.B-self.A)**2))
+        return np.sqrt(np.sum((self.val)**2))
 
-    @property
-    def val(self):
-        return self.B - self.A
-
-    def __repr__(self):
-        return 'Vect({})'.format(self.B - self.A)
-
-    def __add__(self, A=(0,0)):
-        val = self.val + A[:]
-        return self.val + A[:]
+    def __add__(self, A):
+        if isinstance(A, Vect):
+            return Vect(Point(self.val + A.val))
+        elif isinstance(A, Point):
+            return Point(self.val + A.val)
 
     def __radd__(self, A=(0,0)):
-        return self.val + A[:]
+        if isinstance(A, Vect):
+            return Vect(Point(self.val + A.val))
+        elif isinstance(A, Point):
+           return Point(self.val + A.val) 
 
     def __sub__(self, A=(0,0)):
-        return tuple(self.val - A[:])
+        if isinstance(A, Vect):
+            return Vect(Point(self.val - A.val))
+        elif isinstance(A, Point):
+           return Point(self.val - A.val) 
 
     def __rsub__(self, A=(0,0)):
-        return tuple(A[:] - self.val)
+        if isinstance(A, Vect):
+            return Vect(Point(A.val - self.val))
+        elif isinstance(A, Point):
+           return Point(A.val - self.val) 
 
     def __mul__(self, n=1):
-        return tuple(self.val*n)
+        return Vect(Point(self.val*n))
 
     def __rmul__(self, n=1):
-        return tuple(self.val*n)
+        return Vect(Point(self.val*n))
 
     def __truediv__(self, n=1):
-        return tuple(self.val/n)
+        return Vect(Point(self.val/n))
 
     def __getitem__(self, k):
         return self.val[k]
+    
+    def __del__(self):
+        print('suppression du Vect {}'.format(self.name))
+        try:
+            self.graph.remove()
+        except AttributeError :
+            print('Vect {} has no graph attribute'.format(self.name))
+        
 
+if __name__=='__main__':
 
-for n in 'ABCD':
-    Point(pos=np.random.randint(1,9,2), name=n)
+    fig, ax = plt.subplots()
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_xticks(np.arange(0,11,1))
+    ax.set_yticks(np.arange(0,11,1))
+    plt.xlim(0,10)
+    plt.ylim(0,10)
+    plt.grid()
+    plt.show()
 
-plt.show()
+    for n in 'ABCD':
+        Point(pos=np.random.randint(1,9,2), name=n)
 
+    plt.show()
 
-#Vect(p['B'], p['C'])
-#Vect(p['B'], p['A'])
-#a= v['BC'] + v['BA']
-
-def parse(formule):
-    formule = re.sub('\s','', formule)
-    val = re.split('[+-/\*]', formule)
-    maths = re.sub('\w','',formule)
-    maths = list(maths)
-    #maths = re.split('[\w]', maths)
-    print('val : ', val)
-    print('maths : ', maths)
-    def go(name):
-        if len(name)>1:
-            if re.match('\d', name[1]) != None:
-                return p[name]
-            else :
-                return v[name]
-        else:
-            if re.match('\d', name) != None:
-                return int(name)
-            else:
-                return p[name]
-
-    for sign in ['/','*','+','-']:
-        if not maths:
-            break
-        for i,m in enumerate(maths):
-            print(val[i],m,val[i+1])
-            if m == '/':
-                res = go(val[i])/go(val[i+1])
-            elif m == '*':
-                res = go(val[i])*go(val[i+1])
-            elif m == '+':
-                res = go(val[i])+go(val[i+1])
-            elif m == '-':
-                res = go(val[i])-go(val[i+1])
-
-            del val[i:i+2]
-            val.insert(i, res)
-            del maths[i]
-
-    return val
-#    res = get_obj(val.pop(0))
-#    while val:
-#        print('lenght: val : {} , math : {}'.format(len(val), len(maths)))
-#        calc = maths.pop(0)
-#        print('--')
-#        print(calc)
-#
-#        if calc == '+':
-#            print('+')
-#            res = res + get_obj(val.pop(0))
-#        elif calc == '-':
-#            res = res - get_obj(val.pop(0))
-#        elif calc == '/':
-#            res = res / get_obj(val.pop(0))
-#        elif calc == '*':
-#            res = res * get_obj(val.pop(0))
-#
-#
-#    return res
-
-
-
-
+    z = Vect('B', 'A')
+    zz = 2*z
+    a=Point.instances['A']
+    b=Point.instances['B']
