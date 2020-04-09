@@ -21,7 +21,7 @@ and others
 Run example
 ```bash
 python3
-vecteur.py
+import example
 ```
 
 Help :
