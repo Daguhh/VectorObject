@@ -18,6 +18,13 @@ and perform simple calculation like
 and others
 
 ### Usage
+Module
+```python
+from vecteur import get_vect_n_point_class
+fig, ax = matplotlib.pyplot.subplots()
+Point, Vect = get_vect_n_point_class(ax)
+```
+
 Run example
 ```bash
 python3
