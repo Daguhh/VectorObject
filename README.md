@@ -20,7 +20,8 @@ and others
 ### Usage
 Run example
 ```bash
-python3 vecteur.py
+python3
+vecteur.py
 ```
 
 Help :
